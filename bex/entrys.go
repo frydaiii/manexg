@@ -8,6 +8,7 @@ import (
 	"github.com/banbox/banexg/errs"
 	"github.com/banbox/banexg/okx"
 	"github.com/banbox/banexg/utils"
+	"github.com/banbox/banexg/vietnam"
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 		"bybit":   WrapNew(bybit.New),
 		"china":   china.NewExchange,
 		"okx":     okx.NewExchange,
+		"vietnam": vietnam.NewExchange,
 	}
 }
 

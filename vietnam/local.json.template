@@ -1,0 +1,5 @@
+{
+  "consumerID": "YOUR_SSI_CONSUMER_ID",
+  "consumerSecret": "YOUR_SSI_CONSUMER_SECRET",
+  "sandbox": true
+}
