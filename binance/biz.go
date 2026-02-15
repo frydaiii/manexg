@@ -81,6 +81,8 @@ func markRiskyApis(e *Binance) {
 
 func makeSign(e *Binance) banexg.FuncSign {
 	return func(api *banexg.Entry, args map[string]interface{}) *banexg.HttpReq {
+		// ParamSettleCoins is introduced for bybit; binance APIs do not support it.
+		delete(args, banexg.ParamSettleCoins)
 		var params = utils.SafeParams(args)
 		accID := e.PopAccName(params)
 		// 检查NoTrade限制
@@ -501,13 +503,13 @@ func parseOptionOHLCV(rsp *banexg.HttpRes) ([]*banexg.Kline, *errs.Error) {
 		volume, _ := strconv.ParseFloat(bar.Amount, 64)
 		takerVolume, _ := strconv.ParseFloat(bar.TakerAmount, 64)
 		res[i] = &banexg.Kline{
-			Time:   bar.OpenTime,
-			Open:   open,
-			High:   high,
-			Low:    low,
-			Close:  closeP,
-			Volume: volume,
-			Info:   takerVolume,
+			Time:      bar.OpenTime,
+			Open:      open,
+			High:      high,
+			Low:       low,
+			Close:     closeP,
+			Volume:    volume,
+			BuyVolume: takerVolume,
 		}
 	}
 	return res, nil
@@ -538,14 +540,19 @@ func parseBnbOHLCV(rsp *banexg.HttpRes, volIndex, buyVolIndex int) ([]*banexg.Kl
 		closeP, _ := strconv.ParseFloat(closeStr, 64)
 		volume, _ := strconv.ParseFloat(volStr, 64)
 		buyVolume, _ := strconv.ParseFloat(buyVolStr, 64)
+		quoteStr, _ := bar[7].(string)
+		quote, _ := strconv.ParseFloat(quoteStr, 64)
+		tradeNum, _ := bar[8].(int64)
 		res[i] = &banexg.Kline{
-			Time:   barTime,
-			Open:   open,
-			High:   high,
-			Low:    low,
-			Close:  closeP,
-			Volume: volume,
-			Info:   buyVolume,
+			Time:      barTime,
+			Open:      open,
+			High:      high,
+			Low:       low,
+			Close:     closeP,
+			Volume:    volume,
+			Quote:     quote,
+			BuyVolume: buyVolume,
+			TradeNum:  tradeNum,
 		}
 	}
 	return res, nil
