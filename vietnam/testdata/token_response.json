@@ -1,0 +1,7 @@
+{
+  "status": 200,
+  "message": "SUCCESS",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE5MDAwMDAwMDB9.signature"
+  }
+}

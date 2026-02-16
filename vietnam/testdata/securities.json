@@ -1,0 +1,17 @@
+{
+  "status": "SUCCESS",
+  "message": "SUCCESS",
+  "data": [
+    {
+      "market": "HOSE",
+      "symbol": "SSI",
+      "StockName": "CTCP Chung khoan SSI"
+    },
+    {
+      "market": "HNX",
+      "symbol": "SSI",
+      "StockName": "SSI duplicate"
+    }
+  ],
+  "totalRecord": 2
+}

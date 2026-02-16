@@ -1,0 +1,25 @@
+{
+  "status": "SUCCESS",
+  "message": "SUCCESS",
+  "data": [
+    {
+      "TradingDate": "14/02/2026",
+      "OpenPrice": "40.1",
+      "HighestPrice": "41.0",
+      "LowestPrice": "39.8",
+      "ClosePrice": "40.5",
+      "TotalMatchVol": "1000",
+      "TotalMatchVal": "40500000"
+    },
+    {
+      "TradingDate": "15/02/2026",
+      "OpenPrice": "40.5",
+      "HighestPrice": "41.2",
+      "LowestPrice": "40.2",
+      "ClosePrice": "41.0",
+      "TotalMatchVol": "1200",
+      "TotalMatchVal": "49200000"
+    }
+  ],
+  "totalRecord": 2
+}

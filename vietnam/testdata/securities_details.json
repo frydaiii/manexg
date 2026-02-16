@@ -1,0 +1,12 @@
+{
+  "status": "SUCCESS",
+  "message": "SUCCESS",
+  "data": [
+    {
+      "symbol": "SSI",
+      "tickIncrement1": "10",
+      "SecType": "STOCK"
+    }
+  ],
+  "totalRecord": 1
+}
