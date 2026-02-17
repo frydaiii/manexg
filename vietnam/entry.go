@@ -43,7 +43,7 @@ func New(options map[string]interface{}) (*Vietnam, *errs.Error) {
 			},
 			Apis: map[string]*banexg.Entry{
 				MethodPublicPostMarketAccessToken:    api("api/v2/Market/AccessToken", HostPublic, "POST", false),
-				MethodPublicPostMarketSecurities:     api("api/v2/Market/Securities", HostPublic, "POST", true),
+				MethodPublicPostMarketSecurities:     api("api/v2/Market/Securities", HostPublic, "GET", true),
 				MethodPublicPostMarketSecuritiesInfo: api("api/v2/Market/SecuritiesDetails", HostPublic, "POST", true),
 				MethodPublicPostMarketDailyStock:     api("api/v2/Market/DailyStockPrice", HostPublic, "POST", true),
 				MethodPublicPostMarketIntradayOHLC:   api("api/v2/Market/IntradayOhlc", HostPublic, "POST", true),
