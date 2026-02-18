@@ -56,13 +56,14 @@ func inferSinceByLimit(timeframe string, until int64, limit int) int64 {
 
 func (e *Vietnam) fetchDailyOHLCV(ticker string, since, until int64, limit int) ([]*banexg.Kline, *errs.Error) {
 	payload := map[string]interface{}{
-		"symbol":    ticker,
-		"fromDate":  msToSSIDate(since),
-		"toDate":    msToSSIDate(until),
-		"pageIndex": 1,
-		"pageSize":  max(limit, 100),
+		"Symbol":    ticker,
+		"FromDate":  msToSSIDate(since),
+		"ToDate":    msToSSIDate(until),
+		"PageIndex": 1,
+		"PageSize":  max(limit, 100),
+		"ascending": true,
 	}
-	rows, err := requestSSI[[]map[string]interface{}](e, MethodPublicPostMarketDailyStock, payload, e.GetRetryNum("FetchOHLCV", 1))
+	rows, err := requestSSI[[]map[string]interface{}](e, MethodPublicGetMarketDailyOhlc, payload, e.GetRetryNum("FetchOHLCV", 1))
 	if err != nil {
 		return nil, err
 	}
@@ -72,12 +73,13 @@ func (e *Vietnam) fetchDailyOHLCV(ticker string, since, until int64, limit int) 
 
 func (e *Vietnam) fetchIntradayOHLCV(ticker, resolution string, since, until int64, limit int) ([]*banexg.Kline, *errs.Error) {
 	payload := map[string]interface{}{
-		"symbol":     ticker,
-		"fromDate":   msToSSIDate(since),
-		"toDate":     msToSSIDate(until),
-		"pageIndex":  1,
-		"pageSize":   max(limit, 1000),
+		"Symbol":     ticker,
+		"FromDate":   msToSSIDate(since),
+		"ToDate":     msToSSIDate(until),
+		"PageIndex":  1,
+		"PageSize":   max(limit, 1000),
 		"resolution": resolution,
+		"ascending":  true,
 	}
 	rows, err := requestSSI[[]map[string]interface{}](e, MethodPublicPostMarketIntradayOHLC, payload, e.GetRetryNum("FetchOHLCV", 1))
 	if err != nil {

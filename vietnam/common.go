@@ -18,15 +18,30 @@ func makeSign(e *Vietnam) banexg.FuncSign {
 	return func(api *banexg.Entry, args map[string]interface{}) *banexg.HttpReq {
 		params := utils.SafeParams(args)
 		headers := http.Header{}
-		headers.Set("Content-Type", "application/json")
 		headers.Set("Accept", "application/json")
-		body := "{}"
-		if len(params) > 0 {
-			text, err := utils.MarshalString(params)
-			if err != nil {
-				return &banexg.HttpReq{Error: errs.New(errs.CodeMarshalFail, err)}
+		reqUrl := api.Url
+		body := ""
+		isGet := strings.EqualFold(api.Method, "GET")
+		if isGet {
+			if len(params) > 0 {
+				qs := utils.UrlEncodeMap(params, true)
+				if strings.Contains(reqUrl, "?") {
+					reqUrl += "&" + qs
+				} else {
+					reqUrl += "?" + qs
+				}
 			}
-			body = text
+		} else {
+			headers.Set("Content-Type", "application/json")
+			if len(params) > 0 {
+				text, err := utils.MarshalString(params)
+				if err != nil {
+					return &banexg.HttpReq{Error: errs.New(errs.CodeMarshalFail, err)}
+				}
+				body = text
+			} else {
+				body = "{}"
+			}
 		}
 		if utils.GetMapVal(api.More, "auth", false) {
 			token, err := e.getAccessToken()
@@ -36,7 +51,7 @@ func makeSign(e *Vietnam) banexg.FuncSign {
 			headers.Set("Authorization", "Bearer "+token)
 		}
 		return &banexg.HttpReq{
-			Url:     api.Url,
+			Url:     reqUrl,
 			Method:  api.Method,
 			Headers: headers,
 			Body:    body,
@@ -85,11 +100,21 @@ func (e *Vietnam) getAccessToken() (string, *errs.Error) {
 	if err != nil {
 		return "", err
 	}
-	if e2 := ensureSSISuccess(obj); e2 != nil {
-		return "", e2
+	// Auth endpoint returns responseCode/token at top level, not status/data
+	respCode := anyInt64(obj["responseCode"])
+	if respCode != 0 {
+		msg := strings.TrimSpace(anyString(obj["message"]))
+		if msg == "" {
+			msg = "auth failed"
+		}
+		return "", errs.NewMsg(errs.CodeRunTime, msg)
 	}
-	data := mapStringAny(obj["data"])
-	token := strings.TrimSpace(anyString(data["accessToken"]))
+	token := strings.TrimSpace(anyString(obj["token"]))
+	if token == "" {
+		// fallback: try nested data.accessToken for backward compat
+		data := mapStringAny(obj["data"])
+		token = strings.TrimSpace(anyString(data["accessToken"]))
+	}
 	if token == "" {
 		token = strings.TrimSpace(anyString(obj["accessToken"]))
 	}
@@ -118,7 +143,11 @@ func requestSSI[T any](e *Vietnam, endpoint string, payload map[string]interface
 	if e2 := ensureSSISuccess(obj); e2 != nil {
 		return zero, e2
 	}
-	raw := obj["data"]
+	// Spec uses "dataList" for most endpoints, "data" for Securities
+	raw := obj["dataList"]
+	if raw == nil {
+		raw = obj["data"]
+	}
 	text, err2 := utils.MarshalString(raw)
 	if err2 != nil {
 		return zero, errs.New(errs.CodeMarshalFail, err2)

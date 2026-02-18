@@ -13,6 +13,10 @@ const (
 	MethodPublicPostMarketSecuritiesInfo = "publicPostMarketSecuritiesDetails"
 	MethodPublicPostMarketDailyStock     = "publicPostMarketDailyStockPrice"
 	MethodPublicPostMarketIntradayOHLC   = "publicPostMarketIntradayOhlc"
+	MethodPublicGetMarketDailyOhlc       = "publicGetMarketDailyOhlc"
+	MethodPublicGetMarketIndexList       = "publicGetMarketIndexList"
+	MethodPublicGetMarketIndexComponents = "publicGetMarketIndexComponents"
+	MethodPublicGetMarketDailyIndex      = "publicGetMarketDailyIndex"
 )
 
 var (
@@ -25,7 +29,7 @@ var (
 		"1d":  "1D",
 	}
 
-	marketBoards = []string{"HOSE", "HNX", "UPCOM"}
+	marketBoards = []string{"HOSE", "HNX", "UPCOM", "DER"}
 
 	statusSuccess = map[string]bool{
 		"SUCCESS": true,

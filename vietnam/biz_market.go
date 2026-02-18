@@ -71,9 +71,9 @@ func (e *Vietnam) fetchSecuritiesRows(board string) ([]map[string]interface{}, *
 	rows := make([]map[string]interface{}, 0)
 	for page := 1; page <= 10; page++ {
 		payload := map[string]interface{}{
-			"market":    board,
-			"pageIndex": page,
-			"pageSize":  1000,
+			"Market":    board,
+			"Pageindex": page,
+			"Pagesize":  1000,
 		}
 		data, err := requestSSI[[]map[string]interface{}](e, MethodPublicPostMarketSecurities, payload, e.GetRetryNum("LoadMarkets", 1))
 		if err != nil {
@@ -94,10 +94,11 @@ func (e *Vietnam) fetchSecuritiesDetailRows(board string) ([]map[string]interfac
 	rows := make([]map[string]interface{}, 0)
 	for page := 1; page <= 10; page++ {
 		payload := map[string]interface{}{
-			"market":    board,
-			"pageIndex": page,
-			"pageSize":  1000,
+			"Market":                 board,
+			"pageIndex":              page,
+			"lookupRequest.pageSize": 1000,
 		}
+		// SecuritiesDetails returns dataList[].repeatedinfoList[] nested structure
 		data, err := requestSSI[[]map[string]interface{}](e, MethodPublicPostMarketSecuritiesInfo, payload, e.GetRetryNum("LoadMarkets", 1))
 		if err != nil {
 			return rows, err
@@ -105,7 +106,15 @@ func (e *Vietnam) fetchSecuritiesDetailRows(board string) ([]map[string]interfac
 		if len(data) == 0 {
 			break
 		}
-		rows = append(rows, data...)
+		// Flatten: extract repeatedinfoList items from each dataList entry
+		for _, entry := range data {
+			infoList, _ := entry["repeatedinfoList"].([]interface{})
+			for _, item := range infoList {
+				if m, ok := item.(map[string]interface{}); ok {
+					rows = append(rows, m)
+				}
+			}
+		}
 		if len(data) < 1000 {
 			break
 		}
