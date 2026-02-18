@@ -6,6 +6,8 @@ import (
 
 	"github.com/banbox/banexg"
 	"github.com/banbox/banexg/errs"
+	"github.com/banbox/banexg/log"
+	"go.uber.org/zap"
 )
 
 func (e *Vietnam) LoadMarkets(reload bool, params map[string]interface{}) (banexg.MarketMap, *errs.Error) {
@@ -18,20 +20,27 @@ func (e *Vietnam) LoadMarkets(reload bool, params map[string]interface{}) (banex
 	lookupByTicker := make(map[string][]*banexg.Market)
 
 	for _, board := range marketBoards {
+		boardStart := e.MilliSeconds()
 		rows, err := e.fetchSecuritiesRows(board)
 		if err != nil {
 			return nil, err
 		}
 		detailRows, _ := e.fetchSecuritiesDetailRows(board)
+		log.Info("vietnam load markets board",
+			zap.String("board", board),
+			zap.Int("securities", len(rows)),
+			zap.Int("details", len(detailRows)),
+			zap.Int64("cost_ms", e.MilliSeconds()-boardStart),
+		)
 		detailMap := make(map[string]map[string]interface{}, len(detailRows))
 		for _, row := range detailRows {
-			ticker := strings.ToUpper(strings.TrimSpace(anyString(row["symbol"])))
+			ticker := parseTicker(row)
 			if ticker != "" {
 				detailMap[ticker] = row
 			}
 		}
 		for _, row := range rows {
-			ticker := strings.ToUpper(strings.TrimSpace(anyString(row["symbol"])))
+			ticker := parseTicker(row)
 			if ticker == "" {
 				continue
 			}
@@ -64,6 +73,12 @@ func (e *Vietnam) LoadMarkets(reload bool, params map[string]interface{}) (banex
 	e.marketsByTicker = lookupByTicker
 	e.lookupLock.Unlock()
 
+	log.Info("vietnam load markets done",
+		zap.Int("markets", len(markets)),
+		zap.Int("raw_lookup", len(lookupByRaw)),
+		zap.Int("ticker_lookup", len(lookupByTicker)),
+	)
+
 	return markets, nil
 }
 
@@ -75,10 +90,20 @@ func (e *Vietnam) fetchSecuritiesRows(board string) ([]map[string]interface{}, *
 			"Pageindex": page,
 			"Pagesize":  1000,
 		}
+		log.Info("vietnam securities request",
+			zap.String("board", board),
+			zap.Int("page", page),
+			zap.Any("payload", payload),
+		)
 		data, err := requestSSI[[]map[string]interface{}](e, MethodPublicPostMarketSecurities, payload, e.GetRetryNum("LoadMarkets", 1))
 		if err != nil {
 			return nil, err
 		}
+		log.Info("vietnam securities response",
+			zap.String("board", board),
+			zap.Int("page", page),
+			zap.Int("rows", len(data)),
+		)
 		if len(data) == 0 {
 			break
 		}
@@ -98,17 +123,27 @@ func (e *Vietnam) fetchSecuritiesDetailRows(board string) ([]map[string]interfac
 			"pageIndex":              page,
 			"lookupRequest.pageSize": 1000,
 		}
+		log.Info("vietnam securities details request",
+			zap.String("board", board),
+			zap.Int("page", page),
+			zap.Any("payload", payload),
+		)
 		// SecuritiesDetails returns dataList[].repeatedinfoList[] nested structure
 		data, err := requestSSI[[]map[string]interface{}](e, MethodPublicPostMarketSecuritiesInfo, payload, e.GetRetryNum("LoadMarkets", 1))
 		if err != nil {
 			return rows, err
 		}
+		log.Info("vietnam securities details response",
+			zap.String("board", board),
+			zap.Int("page", page),
+			zap.Int("rows", len(data)),
+		)
 		if len(data) == 0 {
 			break
 		}
 		// Flatten: extract repeatedinfoList items from each dataList entry
 		for _, entry := range data {
-			infoList, _ := entry["repeatedinfoList"].([]interface{})
+			infoList := getInterfaceSlice(entry, "repeatedinfoList")
 			for _, item := range infoList {
 				if m, ok := item.(map[string]interface{}); ok {
 					rows = append(rows, m)
@@ -156,6 +191,42 @@ func newStockMarket(board, ticker string, info map[string]interface{}) *banexg.M
 
 func makeMarketSymbol(board, ticker string) string {
 	return fmt.Sprintf("%s:%s/VND", strings.ToUpper(strings.TrimSpace(board)), strings.ToUpper(strings.TrimSpace(ticker)))
+}
+
+func parseTicker(row map[string]interface{}) string {
+	if len(row) == 0 {
+		return ""
+	}
+	for _, key := range []string{"symbol", "stockSymbol", "ticker", "code"} {
+		if val := strings.ToUpper(strings.TrimSpace(anyString(getAnyByLowerKey(row, key)))); val != "" {
+			return val
+		}
+	}
+	return ""
+}
+
+func getAnyByLowerKey(m map[string]interface{}, expect string) interface{} {
+	if len(m) == 0 {
+		return nil
+	}
+	expect = strings.ToLower(strings.TrimSpace(expect))
+	for k, v := range m {
+		if strings.ToLower(strings.TrimSpace(k)) == expect {
+			return v
+		}
+	}
+	return nil
+}
+
+func getInterfaceSlice(m map[string]interface{}, key string) []interface{} {
+	val := getAnyByLowerKey(m, key)
+	if val == nil {
+		return nil
+	}
+	if arr, ok := val.([]interface{}); ok {
+		return arr
+	}
+	return nil
 }
 
 func splitRawMarketID(rawID string) (string, string) {

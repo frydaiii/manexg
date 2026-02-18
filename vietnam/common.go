@@ -11,7 +11,9 @@ import (
 
 	"github.com/banbox/banexg"
 	"github.com/banbox/banexg/errs"
+	"github.com/banbox/banexg/log"
 	"github.com/banbox/banexg/utils"
+	"go.uber.org/zap"
 )
 
 func makeSign(e *Vietnam) banexg.FuncSign {
@@ -132,15 +134,48 @@ func (e *Vietnam) getAccessToken() (string, *errs.Error) {
 
 func requestSSI[T any](e *Vietnam, endpoint string, payload map[string]interface{}, retryNum int) (T, *errs.Error) {
 	var zero T
+	api := e.Apis[endpoint]
+	method, url := "", ""
+	if api != nil {
+		method = api.Method
+		url = api.Url
+	}
+	log.Info("vietnam ssi request",
+		zap.String("endpoint", endpoint),
+		zap.String("method", method),
+		zap.String("url", url),
+		zap.Any("payload", sanitizePayload(payload)),
+	)
 	res := e.RequestApiRetryAdv(context.Background(), endpoint, payload, retryNum, false, false)
 	if res.Error != nil {
+		log.Warn("vietnam ssi request failed",
+			zap.String("endpoint", endpoint),
+			zap.String("method", method),
+			zap.String("url", url),
+			zap.Error(res.Error),
+		)
 		return zero, res.Error
 	}
 	obj, err := decodeSSIMap(res.Content)
 	if err != nil {
+		log.Warn("vietnam ssi decode failed",
+			zap.String("endpoint", endpoint),
+			zap.String("method", method),
+			zap.String("url", url),
+			zap.Int("body_len", len(res.Content)),
+			zap.Error(err),
+		)
 		return zero, err
 	}
 	if e2 := ensureSSISuccess(obj); e2 != nil {
+		log.Warn("vietnam ssi response not success",
+			zap.String("endpoint", endpoint),
+			zap.String("method", method),
+			zap.String("url", url),
+			zap.Any("status", obj["status"]),
+			zap.String("message", strings.TrimSpace(anyString(obj["message"]))),
+			zap.Int("body_len", len(res.Content)),
+		)
 		return zero, e2
 	}
 	// Spec uses "dataList" for most endpoints, "data" for Securities
@@ -148,6 +183,15 @@ func requestSSI[T any](e *Vietnam, endpoint string, payload map[string]interface
 	if raw == nil {
 		raw = obj["data"]
 	}
+	log.Info("vietnam ssi response",
+		zap.String("endpoint", endpoint),
+		zap.String("method", method),
+		zap.String("url", url),
+		zap.Any("status", obj["status"]),
+		zap.String("message", strings.TrimSpace(anyString(obj["message"]))),
+		zap.Int("items", rawItemCount(raw)),
+		zap.Int("body_len", len(res.Content)),
+	)
 	text, err2 := utils.MarshalString(raw)
 	if err2 != nil {
 		return zero, errs.New(errs.CodeMarshalFail, err2)
@@ -157,6 +201,35 @@ func requestSSI[T any](e *Vietnam, endpoint string, payload map[string]interface
 		return zero, errs.New(errs.CodeUnmarshalFail, err3)
 	}
 	return out, nil
+}
+
+func rawItemCount(v interface{}) int {
+	switch items := v.(type) {
+	case []interface{}:
+		return len(items)
+	case []map[string]interface{}:
+		return len(items)
+	case nil:
+		return 0
+	default:
+		return 1
+	}
+}
+
+func sanitizePayload(payload map[string]interface{}) map[string]interface{} {
+	if len(payload) == 0 {
+		return map[string]interface{}{}
+	}
+	res := make(map[string]interface{}, len(payload))
+	for k, v := range payload {
+		low := strings.ToLower(strings.TrimSpace(k))
+		if strings.Contains(low, "secret") || strings.Contains(low, "token") || strings.Contains(low, "password") {
+			res[k] = "***"
+			continue
+		}
+		res[k] = v
+	}
+	return res
 }
 
 func decodeSSIMap(content string) (map[string]interface{}, *errs.Error) {
