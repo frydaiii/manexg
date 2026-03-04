@@ -3,6 +3,8 @@ package vietnam
 import (
 	"fmt"
 	"strings"
+	"time"
+
 
 	"github.com/banbox/banexg"
 	"github.com/banbox/banexg/errs"
@@ -96,6 +98,7 @@ func (e *Vietnam) fetchSecuritiesRows(board string) ([]map[string]interface{}, *
 			zap.Any("payload", payload),
 		)
 		data, err := requestSSI[[]map[string]interface{}](e, MethodPublicPostMarketSecurities, payload, e.GetRetryNum("LoadMarkets", 1))
+		time.Sleep(1100 * time.Millisecond) // SSI rate limit: 1 req/s
 		if err != nil {
 			return nil, err
 		}
@@ -130,6 +133,7 @@ func (e *Vietnam) fetchSecuritiesDetailRows(board string) ([]map[string]interfac
 		)
 		// SecuritiesDetails returns dataList[].repeatedinfoList[] nested structure
 		data, err := requestSSI[[]map[string]interface{}](e, MethodPublicPostMarketSecuritiesInfo, payload, e.GetRetryNum("LoadMarkets", 1))
+		time.Sleep(1100 * time.Millisecond) // SSI rate limit: 1 req/s
 		if err != nil {
 			return rows, err
 		}
