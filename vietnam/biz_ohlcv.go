@@ -28,6 +28,9 @@ func (e *Vietnam) FetchOHLCV(symbol, timeframe string, since int64, limit int, p
 	if until <= 0 {
 		until = e.MilliSeconds()
 	}
+	if secs := utils.TFToSecs(timeframe); secs > 0 && secs < 86400 {
+		timeframe = "1d"
+	}
 	from := since
 	if from <= 0 {
 		from = inferSinceByLimit(timeframe, until, limit)
