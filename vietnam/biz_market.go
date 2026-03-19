@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-
 	"github.com/banbox/banexg"
 	"github.com/banbox/banexg/errs"
 	"github.com/banbox/banexg/log"
@@ -169,6 +168,13 @@ func newStockMarket(board, ticker string, info map[string]interface{}) *banexg.M
 	if priceTick > 0 {
 		modePrice = banexg.PrecModeTickSize
 	}
+	// Lot size: HOSE/HNX = 100 shares, UPCOM = 1 share (odd lots allowed)
+	// 最小交易单位：HOSE/HNX = 100股，UPCOM = 1股（允许零股交易）
+	minLot := float64(100)
+	upperBoard := strings.ToUpper(board)
+	if upperBoard == "UPCOM" {
+		minLot = 1
+	}
 	market := &banexg.Market{
 		ID:          rawID,
 		LowercaseID: strings.ToLower(rawID),
@@ -184,6 +190,9 @@ func newStockMarket(board, ticker string, info map[string]interface{}) *banexg.M
 			Price:      priceTick,
 			ModeAmount: banexg.PrecModeDecimalPlace,
 			ModePrice:  modePrice,
+		},
+		Limits: &banexg.MarketLimits{
+			Amount: &banexg.LimitRange{Min: minLot},
 		},
 		Info: info,
 	}
