@@ -24,7 +24,7 @@ func New(options map[string]interface{}) (*Vietnam, *errs.Error) {
 				Name:      "Vietnam",
 				Countries: []string{"VN"},
 			},
-			RateLimit:  50,
+			RateLimit:  1100, // SSI API rate limit: max 1 req/s
 			Options:    options,
 			TimeFrames: timeFrameMap,
 			Hosts: &banexg.ExgHosts{
