@@ -323,3 +323,44 @@ func TestParseTickerAndSanitizePayload(t *testing.T) {
 		t.Fatalf("non-sensitive keys should remain unchanged: %#v", safe)
 	}
 }
+
+func TestRequestSSIRateLimitRetry(t *testing.T) {
+	v := newVietnamForTest(t)
+	callCount := 0
+	setVietnamTestRequest(t, func(ctx context.Context, endpoint string, params map[string]interface{}, retryNum int, readCache, writeCache bool) *banexg.HttpRes {
+		callCount++
+		if callCount <= 2 {
+			// First two calls return quota exceeded
+			return &banexg.HttpRes{Content: `{"status":"RateLimit","message":"API calls quota exceeded! maximum admitted 1 per 1s."}`}
+		}
+		// Third call succeeds
+		return &banexg.HttpRes{Content: `{"status":"SUCCESS","dataList":[{"symbol":"SSI"}]}`}
+	})
+	rows, err := requestSSI[[]map[string]interface{}](v, MethodPublicGetMarketDailyOhlc, map[string]interface{}{}, 1)
+	if err != nil {
+		t.Fatalf("requestSSI should have retried and succeeded: %v", err)
+	}
+	if len(rows) != 1 || anyString(rows[0]["symbol"]) != "SSI" {
+		t.Fatalf("unexpected rows: %#v", rows)
+	}
+	if callCount != 3 {
+		t.Fatalf("expected 3 calls (2 retries + 1 success), got %d", callCount)
+	}
+}
+
+func TestRequestSSIRateLimitExhausted(t *testing.T) {
+	v := newVietnamForTest(t)
+	callCount := 0
+	setVietnamTestRequest(t, func(ctx context.Context, endpoint string, params map[string]interface{}, retryNum int, readCache, writeCache bool) *banexg.HttpRes {
+		callCount++
+		return &banexg.HttpRes{Content: `{"status":"RateLimit","message":"API calls quota exceeded! maximum admitted 1 per 1s."}`}
+	})
+	_, err := requestSSI[[]map[string]interface{}](v, MethodPublicGetMarketDailyOhlc, map[string]interface{}{}, 1)
+	if err == nil {
+		t.Fatal("expected error after exhausting retries")
+	}
+	// 1 initial + 3 retries = 4 total calls
+	if callCount != 4 {
+		t.Fatalf("expected 4 calls (1 initial + 3 retries), got %d", callCount)
+	}
+}

@@ -146,37 +146,59 @@ func requestSSI[T any](e *Vietnam, endpoint string, payload map[string]interface
 		zap.String("url", url),
 		zap.Any("payload", sanitizePayload(payload)),
 	)
-	res := e.RequestApiRetryAdv(context.Background(), endpoint, payload, retryNum, false, false)
-	if res.Error != nil {
-		log.Warn("vietnam ssi request failed",
-			zap.String("endpoint", endpoint),
-			zap.String("method", method),
-			zap.String("url", url),
-			zap.Error(res.Error),
-		)
-		return zero, res.Error
-	}
-	obj, err := decodeSSIMap(res.Content)
-	if err != nil {
-		log.Warn("vietnam ssi decode failed",
-			zap.String("endpoint", endpoint),
-			zap.String("method", method),
-			zap.String("url", url),
-			zap.Int("body_len", len(res.Content)),
-			zap.Error(err),
-		)
-		return zero, err
-	}
-	if e2 := ensureSSISuccess(obj); e2 != nil {
-		log.Warn("vietnam ssi response not success",
-			zap.String("endpoint", endpoint),
-			zap.String("method", method),
-			zap.String("url", url),
-			zap.Any("status", obj["status"]),
-			zap.String("message", strings.TrimSpace(anyString(obj["message"]))),
-			zap.Int("body_len", len(res.Content)),
-		)
-		return zero, e2
+	// SSI enforces a global 1 req/s rate limit across all endpoints.
+	// When Sign triggers a token refresh, RequestApi's rate limiter sleeps before Sign
+	// but the actual data request fires immediately after the token HTTP call — two
+	// requests within <1s. Retry with back-off when the server rejects us.
+	const maxRateRetries = 3
+	var obj map[string]interface{}
+	var res *banexg.HttpRes
+	for attempt := 0; ; attempt++ {
+		res = e.RequestApiRetryAdv(context.Background(), endpoint, payload, retryNum, false, false)
+		if res.Error != nil {
+			log.Warn("vietnam ssi request failed",
+				zap.String("endpoint", endpoint),
+				zap.String("method", method),
+				zap.String("url", url),
+				zap.Error(res.Error),
+			)
+			return zero, res.Error
+		}
+		var err *errs.Error
+		obj, err = decodeSSIMap(res.Content)
+		if err != nil {
+			log.Warn("vietnam ssi decode failed",
+				zap.String("endpoint", endpoint),
+				zap.String("method", method),
+				zap.String("url", url),
+				zap.Int("body_len", len(res.Content)),
+				zap.Error(err),
+			)
+			return zero, err
+		}
+		if e2 := ensureSSISuccess(obj); e2 != nil {
+			msg := strings.TrimSpace(anyString(obj["message"]))
+			if strings.Contains(strings.ToLower(msg), "quota exceeded") && attempt < maxRateRetries {
+				wait := time.Duration(1200+attempt*500) * time.Millisecond
+				log.Warn("vietnam ssi rate limited, retrying",
+					zap.String("endpoint", endpoint),
+					zap.Int("attempt", attempt+1),
+					zap.Duration("wait", wait),
+				)
+				time.Sleep(wait)
+				continue
+			}
+			log.Warn("vietnam ssi response not success",
+				zap.String("endpoint", endpoint),
+				zap.String("method", method),
+				zap.String("url", url),
+				zap.Any("status", obj["status"]),
+				zap.String("message", msg),
+				zap.Int("body_len", len(res.Content)),
+			)
+			return zero, e2
+		}
+		break
 	}
 	// Spec uses "dataList" for most endpoints, "data" for Securities
 	raw := obj["dataList"]
