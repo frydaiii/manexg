@@ -8,6 +8,7 @@ import (
 	"github.com/banbox/banexg/errs"
 	"github.com/banbox/banexg/okx"
 	"github.com/banbox/banexg/utils"
+	"github.com/banbox/banexg/vci"
 	"github.com/banbox/banexg/vietnam"
 )
 
@@ -18,6 +19,7 @@ func init() {
 		"china":   china.NewExchange,
 		"okx":     okx.NewExchange,
 		"vietnam": vietnam.NewExchange,
+		"vci":     vci.NewExchange,
 	}
 }
 

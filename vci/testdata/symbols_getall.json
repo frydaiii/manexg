@@ -1,0 +1,11 @@
+[
+  {"id":1,"symbol":"VCI","board":"HOSE","type":"STOCK","organName":"Công ty Chứng khoán Bản Việt","enOrganName":"VietCap Securities","organShortName":"VCI","enOrganShortName":"VCI"},
+  {"id":2,"symbol":"TCB","board":"HOSE","type":"STOCK","organName":"Ngân hàng TMCP Kỹ Thương Việt Nam","enOrganName":"Techcombank","organShortName":"TCB","enOrganShortName":"TCB"},
+  {"id":3,"symbol":"SHS","board":"HNX","type":"STOCK","organName":"Công ty Chứng khoán Sài Gòn - Hà Nội","enOrganName":"SHS Securities","organShortName":"SHS","enOrganShortName":"SHS"},
+  {"id":4,"symbol":"MCG","board":"UPCOM","type":"STOCK","organName":"CTCP Cơ Điện Miền Trung","enOrganName":"MCG Corp","organShortName":"MCG","enOrganShortName":"MCG"},
+  {"id":5,"symbol":"E1VFVN30","board":"HOSE","type":"ETF","organName":"Quỹ ETF DCVFMVN30","enOrganName":"DCVFMVN30 ETF","organShortName":"E1VFVN30","enOrganShortName":"E1VFVN30"},
+  {"id":6,"symbol":"CW01","board":"HOSE","type":"CW","organName":"Chứng quyền CW01","enOrganName":"Covered Warrant CW01","organShortName":"CW01","enOrganShortName":"CW01"},
+  {"id":7,"symbol":"BOND01","board":"HNX","type":"BOND","organName":"Trái phiếu BOND01","enOrganName":"Bond BOND01","organShortName":"BOND01","enOrganShortName":"BOND01"},
+  {"id":8,"symbol":"DUP","board":"HOSE","type":"STOCK","organName":"Dup on HOSE","enOrganName":"Dup HOSE","organShortName":"DUP","enOrganShortName":"DUP"},
+  {"id":9,"symbol":"DUP","board":"HNX","type":"STOCK","organName":"Dup on HNX","enOrganName":"Dup HNX","organShortName":"DUP","enOrganShortName":"DUP"}
+]
