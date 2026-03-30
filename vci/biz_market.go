@@ -122,6 +122,16 @@ func newStockMarket(board, ticker string, info map[string]interface{}) *banexg.M
 	market.Info["board"] = board
 	market.Info["ticker"] = ticker
 	market.Info["rawId"] = rawID
+	// Trading session times as UTC ms offsets from midnight (Vietnam is UTC+7, no night sessions)
+	// 交易时段时间为UTC毫秒偏移（越南为UTC+7，无夜盘）
+	switch strings.ToUpper(board) {
+	case "HSX":
+		// HOSE: 09:00-11:30, 13:00-14:45 ICT = 02:00-04:30, 06:00-07:45 UTC
+		market.DayTimes = [][2]int64{{7200000, 16200000}, {21600000, 27900000}}
+	case "HNX", "UPCOM":
+		// HNX/UPCOM: 09:00-11:30, 13:00-15:00 ICT = 02:00-04:30, 06:00-08:00 UTC
+		market.DayTimes = [][2]int64{{7200000, 16200000}, {21600000, 28800000}}
+	}
 	return market
 }
 
