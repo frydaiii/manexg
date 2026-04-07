@@ -154,6 +154,20 @@ func normalizeKlineRange(rows []*banexg.Kline, since, until int64, limit int) []
 	return out
 }
 
+// FetchDailyStockPrice fetches daily stock price data from SSI's DailyStockPrice endpoint.
+// Returns raw response rows that may include PriorClosePrice, ClosePrice, etc.
+// 获取SSI每日股票价格数据，可能包含PriorClosePrice等字段
+func (e *Vietnam) FetchDailyStockPrice(ticker string, since, until int64) ([]map[string]interface{}, *errs.Error) {
+	payload := map[string]interface{}{
+		"Symbol":    ticker,
+		"FromDate":  msToSSIDate(since),
+		"ToDate":    msToSSIDate(until),
+		"PageIndex": 1,
+		"PageSize":  10000,
+	}
+	return requestSSI[[]map[string]interface{}](e, MethodPublicPostMarketDailyStock, payload, e.GetRetryNum("DailyStockPrice", 1))
+}
+
 func max(a, b int) int {
 	if a > b {
 		return a
